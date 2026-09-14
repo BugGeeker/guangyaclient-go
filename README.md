@@ -309,9 +309,33 @@ fmt.Println(result)
 | `LoginSMSVerify(varifacationId, varifacationCode string)`                            | `POST /v1/auth/verification/verify` | `SMSVerifyRequest`       | `SMSVerifyResponse`       |
 | `LoginSMSSignin(varifacationCode, verificationToken, username, captchaToken string)` | `POST /v1/auth/signin`              | `SMSSigninRequest`       | `TokenResponse`           |
 | `RefreshToken(refresh string)`                                                       | `POST /v1/auth/token`               | `RefreshTokenRequest`    | `TokenResponse`           |
+| `DeviceToken(deviceCode string)`                                                     | `POST /v1/auth/token`               | `DeviceTokenRequest`     | `TokenResponse`           |
 | `UserInfo()`                                                                         | `GET /v1/user/me`                   | 无业务参数                    | `UserInfoResponse`        |
 
 账户响应直接位于 JSON 顶层，不使用通用 `data` 包装。`UserInfo()` 当前复用 `request(..., nil, ...)`，会发送序列化后的 `null`，而非业务参数对象。
+
+`DeviceCode(scope string)` 调用 `POST /v1/auth/device/code`，请求体为：
+
+```json
+{
+  "scope": "user",
+  "client_id": "aMe-8VSlkrbQXpUR"
+}
+```
+
+返回类型为 `DeviceCodeResponse`，字段包括 `device_code`、`user_code`、`expires_in`、`interval`、`verification_url` 和 `verification_uri_complete`。
+
+扫码确认后，可使用 `DeviceToken(deviceCode string)` 查询扫码结果并换取账户令牌。该方法同样调用 `POST /v1/auth/token`，请求体为：
+
+```json
+{
+  "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+  "device_code": "AWqnqgTc2qJRvWz2sxmAPSPt2vsOWYm6DExC76hXLSwYT5HjyA",
+  "client_id": "aMe-8VSlkrbQXpUR"
+}
+```
+
+成功后返回 `TokenResponse`，并自动更新客户端访问令牌、刷新令牌和过期时间。
 
 ### 资产、消息与记录
 

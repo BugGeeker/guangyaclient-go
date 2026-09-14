@@ -228,6 +228,29 @@ func (c *Client) RefreshToken(refresh string) (TokenResponse, error) {
 	return result, err
 }
 
+// 查询扫码登录结果并换取token
+// deviceCode 设备授权码
+func (c *Client) DeviceToken(deviceCode string) (TokenResponse, error) {
+	result, err := request[TokenResponse](c, "POST", accountBase+"/v1/auth/token", DeviceTokenRequest{
+		GrantType:  "urn:ietf:params:oauth:grant-type:device_code",
+		DeviceCode: deviceCode,
+		ClientID:   clientID,
+	}, c.accountHeaders())
+	if err != nil {
+		return result, err
+	}
+	c.updateTokens(result)
+	return result, nil
+}
+
+// 获取扫码登录二维码
+// scope 授权范围，默认：user
+func (c *Client) DeviceCode(scope string) (DeviceCodeResponse, error) {
+	return request[DeviceCodeResponse](c, "POST", accountBase+"/v1/auth/device/code", DeviceCodeRequest{
+		Scope: scope, ClientID: clientID,
+	}, c.accountHeaders())
+}
+
 // 更新token
 // result token响应
 func (c *Client) updateTokens(result TokenResponse) {

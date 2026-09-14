@@ -217,6 +217,26 @@ type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+type DeviceTokenRequest struct {
+	GrantType  string `json:"grant_type"`
+	DeviceCode string `json:"device_code"`
+	ClientID   string `json:"client_id"`
+}
+
+type DeviceCodeRequest struct {
+	Scope    string `json:"scope"`
+	ClientID string `json:"client_id"`
+}
+
+type DeviceCodeResponse struct {
+	DeviceCode              string `json:"device_code"`
+	UserCode                string `json:"user_code"`
+	ExpiresIn               int    `json:"expires_in"`
+	Interval                int    `json:"interval"`
+	VerificationURL         string `json:"verification_url"`
+	VerificationURIComplete string `json:"verification_uri_complete"`
+}
+
 type TrafficStatisticsRequest struct {
 	BizType   int    `json:"bizType"`
 	GroupBy   int    `json:"groupBy"`
