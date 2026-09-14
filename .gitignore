@@ -1,0 +1,21 @@
+# Build output
+*.exe
+*.test
+*.out
+bin/
+
+# Go tooling and local caches
+.cache/
+.modcache/
+vendor/
+
+# Local runtime data
+logs/*.json
+
+# IDE and operating system files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
