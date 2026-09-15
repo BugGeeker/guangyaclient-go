@@ -644,18 +644,29 @@ type CloudCreateTaskData struct {
 type CloudCreateTaskResponse = APIResponse[CloudCreateTaskData]
 
 type ShareListData struct {
-	List  []ShareItem `json:"list,omitempty"`
-	Total int         `json:"total,omitempty"`
+	List  []ShareItem `json:"list"`
+	Total int         `json:"total"`
 }
 
 type ShareItem struct {
 	ID               string `json:"id"`
-	Title            string `json:"title"`
+	ShareID          string `json:"shareId"`
 	Code             string `json:"code,omitempty"`
-	ShareURL         string `json:"shareUrl,omitempty"`
+	CreateTime       int64  `json:"createTime"`
+	ShareStatus      int    `json:"shareStatus"`
+	LeftTime         int64  `json:"leftTime"`
+	Title            string `json:"title"`
+	ShareURL         string `json:"shareUrl"`
+	ResType          int    `json:"resType"`
+	FileType         int    `json:"fileType,omitempty"`
+	Thumbnail        string `json:"thumbnail,omitempty"`
+	DownloadType     int    `json:"downloadType"`
+	ShareType        int    `json:"shareType,omitempty"`
+	AutoFillCode     bool   `json:"autoFillCode,omitempty"`
+	HasAuditReject   bool   `json:"hasAuditReject,omitempty"`
+	IsMultiFileShare bool   `json:"isMultiFileShare,omitempty"`
 	AccessToken      string `json:"accessToken,omitempty"`
 	ValidateDuration int    `json:"validateDuration,omitempty"`
-	CreateTime       int64  `json:"createTime,omitempty"`
 }
 
 type ShareListResponse = APIResponse[ShareListData]

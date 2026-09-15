@@ -681,10 +681,16 @@ fmt.Println(result)
 
 | 字段                              | Go 类型    | 说明                                                 |
 | ------------------------------- | -------- | -------------------------------------------------- |
-| `id`、`title`                    | `string` | 分享 ID 与标题                                          |
-| `code`、`shareUrl`、`accessToken` | `string` | 提取码、分享地址、访问令牌，可缺省                                  |
-| `validateDuration`              | `int`    | 有效时长，可缺省                                           |
-| `createTime`                    | `int64`  | 创建时间，可缺省；注意与 `ShareCreateData.createTime` 的字符串类型不同 |
+| `id`、`shareId`、`title`、`shareUrl` | `string` | 记录 ID、分享 ID、标题与分享地址 |
+| `code`、`thumbnail` | `string` | 提取码与缩略图地址，可缺省 |
+| `createTime`、`leftTime` | `int64` | 创建时间与剩余时间，保留 `leftTime: -1`；注意与 `ShareCreateData.createTime` 的字符串类型不同 |
+| `shareStatus`、`resType`、`downloadType` | `int` | 分享状态、资源类型与下载类型 |
+| `fileType`、`shareType` | `int` | 文件类型与分享类型，可缺省 |
+| `autoFillCode`、`hasAuditReject`、`isMultiFileShare` | `bool` | 自动填充提取码、存在审核拒绝、多文件分享标记，可缺省 |
+| `accessToken` | `string` | 保留的兼容字段：访问令牌，可缺省 |
+| `validateDuration` | `int` | 保留的兼容字段：有效时长，可缺省 |
+
+`ShareListData` 的 `total` 和 `list` 不省略；条目中的可选字段缺省时使用对应 Go 类型的零值。
 
 `ShareSummaryData`：
 
