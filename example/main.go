@@ -88,7 +88,18 @@ func main() {
 		call(run, "fs_detail", func() (guangyaclient.FileDetailResponse, error) { return client.FSDetail(*fileID) })
 		call(run, "download_url", func() (guangyaclient.DownloadURLResponse, error) { return client.DownloadURL(*fileID) })
 		call(run, "share_create", func() (guangyaclient.ShareCreateResponse, error) {
-			return client.ShareCreate([]any{*fileID}, "Go 示例分享")
+			return client.ShareCreate(guangyaclient.ShareCreateRequest{
+				FileIDs:          []any{*fileID},
+				Title:            "Go 示例分享",
+				ValidateDuration: 0,
+				ShareType:        1,
+				AutoFillCode:     true,
+				TrafficLimit:     "0",
+				MaxRestoreCount:  0,
+				DownloadType:     1,
+				EnableShareCode:  false,
+				ShareCode:        "",
+			})
 		})
 	}
 	if *shareIDStr != "" {

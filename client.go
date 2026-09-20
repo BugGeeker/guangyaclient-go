@@ -83,6 +83,20 @@ func (c *Client) CloudTaskList(page, pageSize int, status []int) (CloudTaskListR
 	}, nil)
 }
 
+// CloudRetryTask 按状态列表重试云添加任务，不填充默认状态。
+func (c *Client) CloudRetryTask(status []int) (CloudRetryTaskResponse, error) {
+	return request[CloudRetryTaskResponse](c, "POST", apiBase+"/cloudcollection/v2/retry_task", CloudRetryTaskRequest{
+		Status: status,
+	}, nil)
+}
+
+// CloudDeleteTask 按状态列表删除云添加任务，不填充默认状态。
+func (c *Client) CloudDeleteTask(status []int) (CloudDeleteTaskResponse, error) {
+	return request[CloudDeleteTaskResponse](c, "POST", apiBase+"/cloudcollection/v2/delete_task", CloudDeleteTaskRequest{
+		Status: status,
+	}, nil)
+}
+
 // 获取上传令牌
 // name 文件名
 // size 文件大小
@@ -489,13 +503,9 @@ func (c *Client) FSClearRecycleBin() (EmptyResponse, error) {
 }
 
 // 分享文件
-// fileIds 文件ID列表
-// title 分享标题
-func (c *Client) ShareCreate(fileIds []any, title string) (ShareCreateResponse, error) {
-	return request[ShareCreateResponse](c, "POST", apiBase+"/userres/v1/share_file", ShareCreateRequest{
-		FileIDs: fileIds, Title: title, ShareType: 1, AutoFillCode: true,
-		TrafficLimit: "0", DownloadType: 1,
-	}, nil)
+// params 完整分享参数，按原值发送，不填充默认值
+func (c *Client) ShareCreate(params ShareCreateRequest) (ShareCreateResponse, error) {
+	return request[ShareCreateResponse](c, "POST", apiBase+"/userres/v1/share_file", params, nil)
 }
 
 // 更新分享
@@ -506,7 +516,7 @@ func (c *Client) ShareCreate(fileIds []any, title string) (ShareCreateResponse, 
 // code 分享码
 // autoFillCode 是否自动填充码
 // trafficLimit 流量限制
-// maxRestoreCount 最大恢复次数
+// maxRestoreCount 最大转存次数
 // downloadType 下载类型
 func (c *Client) ShareUpdate(id, title string, validateDuration, shareType int, code string, autoFillCode bool, trafficLimit string, maxRestoreCount, downloadType int) (EmptyResponse, error) {
 	return request[EmptyResponse](c, "POST", apiBase+"/userres/v1/update_share", ShareUpdateRequest{
@@ -527,10 +537,20 @@ func (c *Client) ShareUserList(page, pageSize, orderBy, sortType int) (ShareList
 	}, nil)
 }
 
+// ShareAuditRejectList 获取分享中审核未通过的文件列表，参数按原值发送。
+func (c *Client) ShareAuditRejectList(params ShareAuditRejectListRequest) (ShareAuditRejectListResponse, error) {
+	return request[ShareAuditRejectListResponse](c, "POST", apiBase+"/userres/v1/get_share_audit_reject_list", params, nil)
+}
+
 // 删除分享
 // ids 分享ID列表
 func (c *Client) ShareDelete(ids []any) (EmptyResponse, error) {
 	return request[EmptyResponse](c, "POST", apiBase+"/userres/v1/delete_share", ShareDeleteRequest{IDs: ids}, nil)
+}
+
+// ShareDeleteInvalid 删除失效分享。
+func (c *Client) ShareDeleteInvalid() (EmptyResponse, error) {
+	return request[EmptyResponse](c, "POST", apiBase+"/userres/v1/delete_invalid_share", EmptyRequest{}, nil)
 }
 
 // 转存分享

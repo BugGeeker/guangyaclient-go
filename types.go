@@ -162,6 +162,14 @@ type CloudTaskListRequest struct {
 	Status   []int `json:"status"`
 }
 
+type CloudRetryTaskRequest struct {
+	Status []int `json:"status"`
+}
+
+type CloudDeleteTaskRequest struct {
+	Status []int `json:"status"`
+}
+
 type UploadTokenResource struct {
 	FileSize int64  `json:"fileSize"`
 	MD5      string `json:"md5,omitempty"`
@@ -302,6 +310,12 @@ type ShareDeleteRequest struct {
 	IDs []any `json:"ids"`
 }
 
+type ShareAuditRejectListRequest struct {
+	ShareID  string `json:"shareId"`
+	PageSize int    `json:"pageSize"`
+	Cursor   string `json:"cursor"`
+}
+
 type ShareRestoreRequest struct {
 	AccessToken string `json:"accessToken"`
 	FileIDs     []any  `json:"fileIds"`
@@ -379,11 +393,12 @@ type ShareCreateRequest struct {
 	Title            string `json:"title"`
 	ValidateDuration int    `json:"validateDuration"`
 	ShareType        int    `json:"shareType"`
-	Code             string `json:"code"`
 	AutoFillCode     bool   `json:"autoFillCode"`
 	TrafficLimit     string `json:"trafficLimit"`
 	MaxRestoreCount  int    `json:"maxRestoreCount"`
 	DownloadType     int    `json:"downloadType"`
+	EnableShareCode  bool   `json:"enableShareCode"`
+	ShareCode        string `json:"shareCode"`
 }
 
 // ShareAccessTokenResponse accepts both token locations handled by the client.
@@ -533,10 +548,36 @@ type PictureInfo struct {
 	PreviewURL string `json:"previewUrl,omitempty"`
 }
 
+type VideoResolution struct {
+	Width  int `json:"width"`
+	Height int `json:"height"`
+}
+
+type VideoInfo struct {
+	Resolution        VideoResolution `json:"resolution"`
+	Duration          int64           `json:"duration"`
+	BitRate           int64           `json:"bitRate"`
+	FrameRate         int             `json:"frameRate"`
+	VideoCodec        string          `json:"videoCodec"`
+	AudioCodec        string          `json:"audioCodec"`
+	VideoType         string          `json:"videoType"`
+	Source            int             `json:"source,omitempty"`
+	DefaultResolution bool            `json:"defaultResolution,omitempty"`
+	ResolutionName    string          `json:"resolutionName"`
+	NeedVIPType       int             `json:"needVipType,omitempty"`
+	MimeType          string          `json:"mimeType"`
+}
+
+type VideoResource struct {
+	Info VideoInfo `json:"info"`
+	GCID string    `json:"gcid"`
+}
+
 type FileDetailData struct {
-	FileInfo FileDetailInfo `json:"fileInfo"`
-	Location string         `json:"location"`
-	PicInfo  PictureInfo    `json:"picInfo"`
+	FileInfo      FileDetailInfo  `json:"fileInfo"`
+	Location      string          `json:"location"`
+	PicInfo       PictureInfo     `json:"picInfo"`
+	VideoResource []VideoResource `json:"videoResource,omitempty"`
 }
 
 type FileDetailResponse = APIResponse[FileDetailData]
@@ -643,6 +684,14 @@ type CloudCreateTaskData struct {
 
 type CloudCreateTaskResponse = APIResponse[CloudCreateTaskData]
 
+type CloudTaskIDsData struct {
+	TaskIDs []string `json:"taskIds,omitempty"`
+}
+
+type CloudRetryTaskResponse = APIResponse[CloudTaskIDsData]
+
+type CloudDeleteTaskResponse = APIResponse[CloudTaskIDsData]
+
 type ShareListData struct {
 	List  []ShareItem `json:"list"`
 	Total int         `json:"total"`
@@ -670,6 +719,24 @@ type ShareItem struct {
 }
 
 type ShareListResponse = APIResponse[ShareListData]
+
+type ShareAuditRejectItem struct {
+	FileID     string `json:"fileId"`
+	FileName   string `json:"fileName"`
+	ParentID   string `json:"parentId"`
+	ResType    int    `json:"resType"`
+	CTime      int64  `json:"ctime"`
+	UTime      int64  `json:"utime"`
+	ParentName string `json:"parentName"`
+}
+
+type ShareAuditRejectListData struct {
+	Total  int                    `json:"total"`
+	Cursor string                 `json:"cursor"`
+	List   []ShareAuditRejectItem `json:"list"`
+}
+
+type ShareAuditRejectListResponse = APIResponse[ShareAuditRejectListData]
 
 type UploadCredentials struct {
 	AccessKeyID     string     `json:"accessKeyID"`

@@ -165,6 +165,20 @@ task, err := client.CloudCreateTask([]int{82, 83}, "magnet:?xt=urn:btih:65D1A45E
 // 查询云添加任务
 tasks, err := client.CloudTaskList(0, 50, nil)
 
+// 按状态列表重试云添加任务
+retried, err := client.CloudRetryTask([]int{0, 1, 3, 4})
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Println(retried.Data.TaskIDs)
+
+// 按状态列表删除云添加任务
+deletedTasks, err := client.CloudDeleteTask([]int{0, 1, 3, 4})
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Println(deletedTasks.Data.TaskIDs)
+
 // 解析 HTTP、磁力或 ed2k 链接
 resolved, err := client.CloudResolveURL("magnet:?xt=urn:btih:...")
 fmt.Println(resolved.Data.BTResInfo.InfoHash, resolved.Data.BTResInfo.SubfilesNum)
@@ -189,14 +203,36 @@ fmt.Println(status.Data.Status)
 
 ```go
 // 创建分享
-share, err := client.ShareCreate(
-	[]any{"file-id"},
-	"我的文件",
-)
+share, err := client.ShareCreate(guangyaclient.ShareCreateRequest{
+	FileIDs:          []any{"file-id"},
+	Title:            "我的文件",
+	ValidateDuration: 0,
+	ShareType:        1,
+	AutoFillCode:     true,
+	TrafficLimit:     "104857600",
+	MaxRestoreCount:  0,
+	DownloadType:     0,
+	EnableShareCode:  false,
+	ShareCode:        "",
+})
 fmt.Println(share.Data.ShareURL, share.Data.Code)
 
 // 查询自己的分享
 shares, err := client.ShareUserList(0, 50, 1, 1)
+
+// 查询分享中审核未通过的文件
+rejected, err := client.ShareAuditRejectList(guangyaclient.ShareAuditRejectListRequest{
+	ShareID:  "1946892491281084439",
+	PageSize: 50,
+	Cursor:   "",
+})
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Println(rejected.Data.Total, rejected.Data.Cursor)
+for _, file := range rejected.Data.List {
+	fmt.Println(file.FileID, file.FileName, file.ParentName)
+}
 
 // 获取公开分享摘要，不要求登录
 summary, err := client.ShareSummary("share-id")
@@ -230,6 +266,18 @@ fmt.Println(restored.Data.TaskID)
 `ShareFilesListResponse`（文件条目复用 `FileItem`，`Cursor` 为整数）。
 `ShareUpdate`、`ShareDelete` 返回 `EmptyResponse`（`data: null` 对应 `Data == nil`），`ShareFilesSize` 返回
 `ShareFilesSizeResponse`，`ShareDownloadURL` 返回 `ShareDownloadURLResponse`。
+
+删除失效分享，无需入参，请求体按 SDK 无参 POST 约定发送 `{}`：
+
+```go
+result, err := client.ShareDeleteInvalid()
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Println(result.Msg)
+```
+
+`ShareDeleteInvalid` 返回 `EmptyResponse`；响应 `{"msg":"success"}` 中没有 `data` 和 `code`，对应 `Data == nil`、`Code == 0`。
 
 ## 文件上传
 
@@ -374,6 +422,8 @@ fmt.Println(result)
 | `CloudResolveURL(url string)`                                        | `POST /nd.bizcloudcollection.s/v1/resolve_res`     | `CloudResolveURLRequest`     | `CloudResolveURLResponse`     |
 | `CloudCreateTask(fileIndexes []int, url string, parentId any, newName string)` | `POST /nd.bizcloudcollection.s/v1/create_task` | `CloudCreateTaskRequest` | `CloudCreateTaskResponse` |
 | `CloudTaskList(page, pageSize int, status []int)`                    | `POST /nd.bizcloudcollection.s/v1/list_task`       | `CloudTaskListRequest`       | `CloudTaskListResponse`       |
+| `CloudRetryTask(status []int)` | `POST /cloudcollection/v2/retry_task` | `CloudRetryTaskRequest` | `CloudRetryTaskResponse` |
+| `CloudDeleteTask(status []int)` | `POST /cloudcollection/v2/delete_task` | `CloudDeleteTaskRequest` | `CloudDeleteTaskResponse` |
 | `ResolveTorrent(data []byte, filename string)`                       | `POST /nd.bizcloudcollection.s/v1/resolve_torrent` | Multipart 文件字段 `torrent`     | `CloudResolveTorrentResponse` |
 | `UploadToken(name string, size int64, parentId any, fileMD5 string)` | `POST /userres/v2/get_res_center_token`            | `UploadTokenRequest`         | `UploadTokenResponse`         |
 | `CheckCanFlashUpload(taskID, path string)`                           | `POST /userres/v1/check_can_flash_upload`          | `CheckCanFlashUploadRequest` | `FlashUploadResponse`         |
@@ -383,10 +433,12 @@ fmt.Println(result)
 
 | 方法及参数顺序                                                                                                                                                  | HTTP 与路径                                             | 请求类型                      | 返回类型                       |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ------------------------- | -------------------------- |
-| `ShareCreate(fileIds []any, title string)`                                                                                                               | `POST /nd.bizuserres.s/v1/share_file`                | `ShareCreateRequest`      | `ShareCreateResponse`      |
+| `ShareCreate(params ShareCreateRequest)`                                                                                                               | `POST /nd.bizuserres.s/v1/share_file`                | `ShareCreateRequest`      | `ShareCreateResponse`      |
 | `ShareUpdate(id, title string, validateDuration, shareType int, code string, autoFillCode bool, trafficLimit string, maxRestoreCount, downloadType int)` | `POST /nd.bizuserres.s/v1/update_share`              | `ShareUpdateRequest`      | `EmptyResponse`            |
 | `ShareUserList(page, pageSize, orderBy, sortType int)`                                                                                                   | `POST /nd.bizuserres.s/v1/get_share_list`            | `ShareListRequest`        | `ShareListResponse`        |
+| `ShareAuditRejectList(params ShareAuditRejectListRequest)` | `POST /userres/v1/get_share_audit_reject_list` | `ShareAuditRejectListRequest` | `ShareAuditRejectListResponse` |
 | `ShareDelete(ids []any)`                                                                                                                                 | `POST /nd.bizuserres.s/v1/delete_share`              | `ShareDeleteRequest`      | `EmptyResponse`            |
+| `ShareDeleteInvalid()` | `POST /userres/v1/delete_invalid_share` | `EmptyRequest` | `EmptyResponse` |
 | `ShareRestore(accessToken string, fileIds []any, parentId string)`                                                                                       | `POST /nd.bizuserres.s/v1/restore_share`             | `ShareRestoreRequest`     | `FileTaskResponse`         |
 | `ShareSummary(shareId string)`                                                                                                                           | `POST /nd.bizuserres.s/v1/get_share_summary`         | `ShareIDRequest`          | `ShareSummaryResponse`     |
 | `ShareAccessToken(shareId, code string)`                                                                                                                 | `POST /nd.bizuserres.s/v1/get_share_access_token`    | `ShareAccessTokenRequest` | `ShareAccessTokenResponse` |
@@ -429,7 +481,7 @@ fmt.Println(result)
 
 | 请求类型                       | JSON 字段与 Go 类型                                                  | 参数说明                                                                                 |
 | -------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `EmptyRequest`             | 无字段，序列化为 `{}`                                                   | 用于资产查询及清空回收站                                                                         |
+| `EmptyRequest`             | 无字段，序列化为 `{}`                                                   | 用于资产查询、清空回收站及删除失效分享                                                                         |
 | `TrafficStatisticsRequest` | `bizType int`、`groupBy int`、`startDate string`、`endDate string` | 业务类型、分组方式、开始/结束日期；日期格式 `YYYY-MM-DD`。代码注释记录 `bizType=8` 为直链流量包，`5` 为免登录流量包；未校验枚举及日期范围 |
 | `InAppMsgListRequest`      | `msgType int`、`page int`、`pageSize int`                         | 消息类型、页码、每页数量；三个字段均发送                                                                 |
 | `UserActionRequest`        | `pageSize int`、`cursor string`、`fileTypes []int`                | 每页数量、字符串游标、文件类型过滤；首次可传 `cursor=""`；`fileTypes=nil` 发送 `null`，空切片发送 `[]`              |
@@ -474,6 +526,8 @@ fmt.Println(result)
 | `CloudResolveURLRequest`     | `url string`                                                          | 待解析资源链接                                                 |
 | `CloudCreateTaskRequest`     | `fileIndexes []int`、`url string`、`parentId any`、`newName string`    | BT 文件索引列表、待添加链接、目标目录和新名称；父目录 `nil` 转 `""` |
 | `CloudTaskListRequest`       | `page int`、`pageSize int`、`status []int`                              | 页码、每页数量、任务状态；`status=nil` 时使用 `[0,1,3,4]`，显式空切片保留为 `[]` |
+| `CloudRetryTaskRequest` | `status []int` | 状态列表按原值发送，不填充默认值；空切片发送 `[]`，`nil` 发送 `null`，字段不省略 |
+| `CloudDeleteTaskRequest` | `status []int` | 状态列表按原值发送，不填充默认值；空切片发送 `[]`，`nil` 发送 `null`，字段不省略 |
 | Multipart `ResolveTorrent`   | 文件字段 `torrent`                                                        | `data []byte` 为种子内容，`filename string` 为上传文件名；不使用 JSON   |
 | `UploadTokenRequest`         | `capacity int`、`name string`、`res UploadTokenResource`、`parentId any` | `capacity` 固定为 `30`；名称来自 `name`；父目录 `nil` 转 `""`        |
 | `UploadTokenResource`        | `fileSize int64`、`md5 string`                                         | 文件字节数来自 `size`；摘要来自 `fileMD5`，为空则省略                     |
@@ -485,9 +539,10 @@ fmt.Println(result)
 
 | 请求类型                      | JSON 字段与 Go 类型                                                                                                                                                         | 参数说明                                                           |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `ShareCreateRequest`      | `fileIds []any`、`title string`、`validateDuration int`、`shareType int`、`code string`、`autoFillCode bool`、`trafficLimit string`、`maxRestoreCount int`、`downloadType int` | `ShareCreate` 只接收文件 ID 列表和标题，其余使用下列固定值；所有字段均发送                 |
+| `ShareCreateRequest`      | `fileIds []any`、`title string`、`validateDuration int`、`shareType int`、`autoFillCode bool`、`trafficLimit string`、`maxRestoreCount int`、`downloadType int`、`enableShareCode bool`、`shareCode string` | `ShareCreate` 接收完整请求结构，所有字段按原值发送，包括 `false`、`0` 和空字符串；不填充默认值 |
 | `ShareUpdateRequest`      | `id string`、`title string`、`validateDuration int`、`shareType int`、`code string`、`autoFillCode bool`、`trafficLimit string`、`maxRestoreCount int`、`downloadType int`     | 分享 ID、标题、有效时长、分享类型、提取码、是否自动填码、流量限制、最大转存次数、下载类型；全部由方法参数提供，零值也发送 |
 | `ShareListRequest`        | `page int`、`pageSize int`、`orderType int`、`sortType int`                                                                                                               | 页码、每页数量、排序字段及类型；方法参数 `orderBy` 写入的是 `orderType`，不是 `orderBy`   |
+| `ShareAuditRejectListRequest` | `shareId string`、`pageSize int`、`cursor string` | 全部按原值发送，包括零值和空字符串；首次请求 `cursor: ""`，后续分页传入响应中的字符串游标 |
 | `ShareDeleteRequest`      | `ids []any`                                                                                                                                                            | 要删除的分享 ID 列表                                                   |
 | `ShareRestoreRequest`     | `accessToken string`、`fileIds []any`、`parentId string`                                                                                                                 | 分享访问令牌、转存文件 ID 列表、目标父目录；空父目录仍发送                                |
 | `ShareIDRequest`          | `shareId string`                                                                                                                                                       | 分享摘要查询                                                         |
@@ -496,17 +551,20 @@ fmt.Println(result)
 | `ShareFilesSizeRequest`   | `accessToken string`、`fileIds []any`、`download bool`                                                                                                                   | 分享访问令牌、文件 ID 列表、下载标志；`false` 仍发送                               |
 | `ShareDownloadURLRequest` | `fileId string`、`accessToken string`                                                                                                                                   | 分享中的文件 ID 及分享访问令牌                                              |
 
-`ShareCreate` 除 `fileIds`、`title` 外的固定请求值：
+`ShareCreate` 请求示例（以下值由调用方设置，并非方法固定值；旧的双参数调用需迁移为 `ShareCreateRequest`）：
 
 ```json
 {
+  "fileIds": ["1946490208080760901"],
+  "title": "guangya_client_go.zip",
   "validateDuration": 0,
   "shareType": 1,
-  "code": "",
   "autoFillCode": true,
-  "trafficLimit": "0",
+  "trafficLimit": "104857600",
   "maxRestoreCount": 0,
-  "downloadType": 1
+  "downloadType": 0,
+  "enableShareCode": false,
+  "shareCode": ""
 }
 ```
 
@@ -591,7 +649,7 @@ fmt.Println(result)
 | `RestoreListResponse`      | `RestoreListData`      | `total int`、`list []FileItem`、`cursor int`、`hasMore bool`                                                                                      |
 | `ShareFilesListResponse`   | `ShareFilesListData`   | `total int`、`list []FileItem`、`cursor int`；没有 `hasMore` 字段                                                                                     |
 | `FSCreateDirResponse`      | `FSCreateDirData`      | `fileId string`、`fileName string`、`parentId string`、`depth int`、`dirType int`、`resType int`、`fullParentIds string`、`ctime int64`、`utime int64` |
-| `FileDetailResponse`       | `FileDetailData`       | `fileInfo FileDetailInfo`、`location string`、`picInfo PictureInfo`                                                                              |
+| `FileDetailResponse`       | `FileDetailData`       | `fileInfo FileDetailInfo`、`location string`、`picInfo PictureInfo`、可选 `videoResource []VideoResource`                                       |
 | `UploadInfoResponse`       | `*FileDetailInfo`      | 上传中数据可能为空；访问前检查 `Data != nil`                                                                                                                  |
 | `FileTaskResponse`         | `FileTaskData`         | `taskId string`；用于删除、复制、移动、转存产生的任务                                                                                                             |
 | `TaskStatusResponse`       | `TaskStatusData`       | `status int`、`progress int`；未在 SDK 中定义完整状态枚举                                                                                                  |
@@ -618,6 +676,18 @@ fmt.Println(result)
 | `leftTime`              | `int64`  | 剩余时间，可缺省                                           |
 
 `FileDetailInfo` 包含上述 `FileItem` 字段中的全部字段，**除** **`parentName`、`leftTime`** **外**。`PictureInfo` 包含可选的 `previewUrl string`。
+
+`FileDetailData.VideoResource` 包含各视频资源的 `info VideoInfo` 和 `gcid string`。`VideoInfo` 字段如下：
+
+| JSON 字段 | Go 类型 | 说明 |
+| --------- | ------- | ---- |
+| `resolution` | `VideoResolution` | 包含 `width int`、`height int` |
+| `duration`、`bitRate` | `int64` | 时长与码率 |
+| `frameRate` | `int` | 帧率 |
+| `videoCodec`、`audioCodec`、`videoType` | `string` | 视频编码、音频编码与容器类型 |
+| `resolutionName`、`mimeType` | `string` | 分辨率名称与 MIME 类型 |
+| `source`、`needVipType` | `int` | 来源与会员类型，可缺省，缺省为 `0` |
+| `defaultResolution` | `bool` | 默认分辨率标记，可缺省，缺省为 `false` |
 
 ### 用户操作记录
 
@@ -648,12 +718,18 @@ fmt.Println(result)
 
 ### 云添加响应
 
+`CloudRetryTask` 和 `CloudDeleteTask` 分别返回 `CloudRetryTaskResponse`、`CloudDeleteTaskResponse`，共用 `CloudTaskIDsData`。
+响应 `{"data":{"taskIds":["1947244826045964289"]}}` 中的任务 ID 通过 `result.Data.TaskIDs` 读取，类型为 `[]string`。
+无任务时响应为 `{"data":{}}`，`TaskIDs == nil`；序列化时空的 `taskIds` 字段省略。不要求存在 `msg` 或 `code`，缺省时分别为 `""` 和 `0`。
+`CloudRetryTask` 不再返回 `EmptyResponse`，显式声明旧返回类型的调用方需同步调整。
+
 | 返回类型                          | Data 类型及字段                                                                                           |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `CloudResolveURLResponse`     | `CloudResolveURLData`：`resType int`、`btResInfo BTResourceInfo`、`url string`                          |
 | `CloudResolveTorrentResponse` | `CloudResolveTorrentData`：`resType int`、`btResInfo BTResourceInfo`                                   |
 | `CloudCreateTaskResponse`     | `CloudCreateTaskData`：`taskId string`、`url string`                                                   |
 | `CloudTaskListResponse`       | `CloudTaskListData`：`cursor string`、`list []CloudTask`、`statusCounts []CloudStatusCount`、`total int` |
+| `CloudRetryTaskResponse`、`CloudDeleteTaskResponse` | `CloudTaskIDsData`：可选 `taskIds []string` |
 
 嵌套类型：
 
@@ -670,12 +746,15 @@ fmt.Println(result)
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `ShareCreateResponse`      | `Data ShareCreateData`：`code string`、`createTime string`、`shareId string`、`shareUrl string`                               |
 | `ShareListResponse`        | `Data ShareListData`：`list []ShareItem`、`total int`                                                                       |
+| `ShareAuditRejectListResponse` | `Data ShareAuditRejectListData`：`total int`、`cursor string`、`list []ShareAuditRejectItem`；三个字段均不省略 |
 | `ShareSummaryResponse`     | `Data ShareSummaryData`，见下表                                                                                               |
 | `ShareAccessTokenResponse` | 非通用包装：顶层 `msg string`、`data ShareAccessTokenData`、可选 `access_token string`；`ShareAccessTokenData` 包含 `accessToken string` |
 | `ShareFilesSizeResponse`   | `Data ShareFilesSizeData`：`totalSize int64`、`fileSizeMap map[string]int64`（键为文件 ID）                                       |
 | `ShareDownloadURLResponse` | `Data ShareDownloadURLData`：`downloadUrl string`                                                                          |
 
 `ShareAccessTokenResponse` 同时保留 `result.Data.AccessToken` 与 `result.AccessToken` 两种位置，不会自动合并；调用方应按实际响应选用。
+
+`ShareAuditRejectItem` 包含 `fileId string`、`fileName string`、`parentId string`、`resType int`、`ctime int64`、`utime int64`、`parentName string`。ID 和游标保留字符串类型，时间戳使用 `int64`。
 
 `ShareItem`：
 
