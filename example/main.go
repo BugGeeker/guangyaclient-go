@@ -120,7 +120,7 @@ func main() {
 			}
 			if accessToken != "" {
 				// call(run, "share_files_list", func() (guangyaclient.ShareFilesListResponse, error) {
-				// 	return client.ShareFilesList(accessToken, "", 1, 50, 0, 0)
+				// 	return client.ShareFilesList(accessToken, "", 0, 50, 0, 0)
 				// })
 				call(run, "share_files_size", func() (guangyaclient.ShareFilesSizeResponse, error) {
 					return client.ShareFilesSize(accessToken, []any{*fileID}, true)

@@ -51,7 +51,7 @@ func (c *Client) Close() {}
 
 // 获取文件列表
 // parentId 目录ID
-// page 页码
+// page 页码，0 为第一页
 // size 每页数量
 // orderBy 排序字段
 // sortType 排序方式
@@ -71,7 +71,7 @@ func (c *Client) FSFiles(parentId any, page, pageSize, orderBy, sortType int, fi
 }
 
 // 获取云添加任务列表
-// page 页码
+// page 页码，0 为第一页
 // pageSize 每页数量
 // status 任务状态列表
 func (c *Client) CloudTaskList(page, pageSize int, status []int) (CloudTaskListResponse, error) {
@@ -302,9 +302,9 @@ func (c *Client) GetTrafficStatistics(bizType, groupBy int, startDate, endDate s
 	}, nil)
 }
 
-// 获取应用列表
+// 获取应用内消息列表
 // msgType 消息类型
-// page 页码
+// page 页码，0 为第一页
 // pageSize 每页数量
 func (c *Client) GetInAppMsgList(msgType, page, pageSize int) (InAppMsgListResponse, error) {
 	return request[InAppMsgListResponse](c, "POST", apiBase+"/misc/v1/get_inapp_msg_list", InAppMsgListRequest{
@@ -313,43 +313,51 @@ func (c *Client) GetInAppMsgList(msgType, page, pageSize int) (InAppMsgListRespo
 }
 
 // 获取用户操作记录列表
+// page 页码，0 为第一页
 // pageSize 每页数量
 // cursor 分页游标
 // fileTypes 文件类型列表
-func (c *Client) GetUserAction(pageSize int, cursor string, fileTypes []int) (UserActionResponse, error) {
+func (c *Client) GetUserAction(page, pageSize int, cursor string, fileTypes []int) (UserActionResponse, error) {
 	return request[UserActionResponse](c, "POST", apiBase+"/userres/v1/get_user_action", UserActionRequest{
-		PageSize: pageSize, Cursor: cursor, FileTypes: fileTypes,
+		Page: page, PageSize: pageSize, Cursor: cursor, FileTypes: fileTypes,
 	}, nil)
 }
 
 // 获取转存文件列表
+// page 页码，0 为第一页
 // pageSize 每页数量
 // cursor 分页游标
 // orderBy 排序字段
 // sortType 排序类型
 // err 错误
-func (c *Client) GetRestoreList(pageSize, cursor, orderBy, sortType int) (RestoreListResponse, error) {
+func (c *Client) GetRestoreList(page, pageSize, cursor, orderBy, sortType int) (RestoreListResponse, error) {
 	return request[RestoreListResponse](c, "POST", apiBase+"/userres/v1/get_restore_list", RestoreListRequest{
-		PageSize: pageSize, Cursor: cursor, OrderBy: orderBy, SortType: sortType,
+		Page: page, PageSize: pageSize, Cursor: cursor, OrderBy: orderBy, SortType: sortType,
 	}, nil)
 }
 
 // 搜索文件
 // name 文件名
+// page 页码，0 为第一页
 // pageSize 每页数量
-func (c *Client) SearchFiles(name string, pageSize int) (FileListResponse, error) {
+// parentId 搜索目录ID，nil 转为空字符串
+func (c *Client) SearchFiles(name string, page, pageSize int, parentId any) (FileListResponse, error) {
+	if parentId == nil {
+		parentId = ""
+	}
 	return request[FileListResponse](c, "POST", apiBase+"/userres/v1/file/search_files", SearchFilesRequest{
-		Name: name, PageSize: pageSize,
+		Name: name, Page: page, PageSize: pageSize, ParentID: parentId,
 	}, nil)
 }
 
 // 获取压缩文件列表
 // fileID 压缩文件ID
+// page 页码，0 为第一页
 // pageSize 每页数量
 // password 压缩文件密码
-func (c *Client) GetCompressFileList(fileID string, pageSize int, password string) (CompressFileListResponse, error) {
+func (c *Client) GetCompressFileList(fileID string, page, pageSize int, password string) (CompressFileListResponse, error) {
 	return request[CompressFileListResponse](c, "POST", apiBase+"/userres/v1/get_compress_file_list", CompressFileListRequest{
-		FileID: fileID, PageSize: pageSize, Password: password,
+		FileID: fileID, Page: page, PageSize: pageSize, Password: password,
 	}, nil)
 }
 
@@ -451,7 +459,7 @@ func (c *Client) FSDetail(fileId string) (FileDetailResponse, error) {
 }
 
 // 获取图片列表
-// page 页码
+// page 页码，0 为第一页
 // size 每页数量
 // order 排序字段
 // sort 排序方式
@@ -461,7 +469,7 @@ func (c *Client) FSImageList(page, pageSize, orderBy, sortType int) (FileListRes
 }
 
 // 获取视频列表
-// page 页码
+// page 页码，0 为第一页
 // pageSize 每页数量
 // orderBy 排序字段
 // sortType 排序方式
@@ -472,7 +480,7 @@ func (c *Client) FSVideoList(page, pageSize, orderBy, sortType int, play bool) (
 }
 
 // 获取文档列表
-// page 页码
+// page 页码，0 为第一页
 // pageSize 每页数量
 // orderBy 排序字段
 // sortType 排序方式
@@ -482,7 +490,7 @@ func (c *Client) FSDocumentList(page, pageSize, orderBy, sortType int) (FileList
 }
 
 // 获取回收站文件列表
-// page 页码
+// page 页码，0 为第一页
 // pageSize 每页数量
 // orderBy 排序字段
 // sortType 排序方式
@@ -527,7 +535,7 @@ func (c *Client) ShareUpdate(id, title string, validateDuration, shareType int, 
 }
 
 // 获取分享列表
-// page 页码
+// page 页码，0 为第一页
 // pageSize 每页数量
 // orderBy 排序字段
 // sortType 排序方式
@@ -538,6 +546,7 @@ func (c *Client) ShareUserList(page, pageSize, orderBy, sortType int) (ShareList
 }
 
 // ShareAuditRejectList 获取分享中审核未通过的文件列表，参数按原值发送。
+// params.Page 为页码，0 为第一页；保留独立的 Cursor 游标。
 func (c *Client) ShareAuditRejectList(params ShareAuditRejectListRequest) (ShareAuditRejectListResponse, error) {
 	return request[ShareAuditRejectListResponse](c, "POST", apiBase+"/userres/v1/get_share_audit_reject_list", params, nil)
 }
@@ -606,7 +615,7 @@ func (c *Client) ShareAccessToken(shareId, code string) (ShareAccessTokenRespons
 // 获取分享文件列表
 // accessToken 分享访问令牌
 // parentId 目录ID
-// page 页码
+// page 页码，0 为第一页
 // pageSize 每页数量
 // orderBy 排序字段
 // sortType 排序方式

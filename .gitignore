@@ -9,6 +9,8 @@ bin/
 .modcache/
 vendor/
 
+*_test.go
+
 # Local runtime data
 logs/*.json
 

@@ -223,6 +223,7 @@ shares, err := client.ShareUserList(0, 50, 1, 1)
 // 查询分享中审核未通过的文件
 rejected, err := client.ShareAuditRejectList(guangyaclient.ShareAuditRejectListRequest{
 	ShareID:  "1946892491281084439",
+	Page:     0,
 	PageSize: 50,
 	Cursor:   "",
 })
@@ -392,16 +393,16 @@ fmt.Println(result)
 | `GetAssets()`                                                           | `POST /assets/v1/get_assets`             | `EmptyRequest`             | `AssetsResponse`            |
 | `GetTrafficStatistics(bizType, groupBy int, startDate, endDate string)` | `POST /assets/v1/get_traffic_statistics` | `TrafficStatisticsRequest` | `TrafficStatisticsResponse` |
 | `GetInAppMsgList(msgType, page, pageSize int)`                          | `POST /misc/v1/get_inapp_msg_list`       | `InAppMsgListRequest`      | `InAppMsgListResponse`      |
-| `GetUserAction(pageSize int, cursor string, fileTypes []int)`           | `POST /userres/v1/get_user_action`       | `UserActionRequest`        | `UserActionResponse`        |
-| `GetRestoreList(pageSize, cursor, orderBy, sortType int)`               | `POST /userres/v1/get_restore_list`      | `RestoreListRequest`       | `RestoreListResponse`       |
+| `GetUserAction(page, pageSize int, cursor string, fileTypes []int)`     | `POST /userres/v1/get_user_action`       | `UserActionRequest`        | `UserActionResponse`        |
+| `GetRestoreList(page, pageSize, cursor, orderBy, sortType int)`         | `POST /userres/v1/get_restore_list`      | `RestoreListRequest`       | `RestoreListResponse`       |
 
 ### 文件管理与下载
 
 | 方法及参数顺序                                                                                                                     | HTTP 与路径                                          | 请求类型                      | 返回类型                       |
 | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------- | -------------------------- |
 | `FSFiles(parentId any, page, pageSize, orderBy, sortType int, fileTypes []int, resType, dirType *int, needPlayRecord bool)` | `POST /userres/v1/file/get_file_list`             | `FSFilesRequest`          | `FileListResponse`         |
-| `SearchFiles(name string, pageSize int)`                                                                                    | `POST /userres/v1/file/search_files`              | `SearchFilesRequest`      | `FileListResponse`         |
-| `GetCompressFileList(fileID string, pageSize int, password string)`                                                         | `POST /userres/v1/get_compress_file_list`         | `CompressFileListRequest` | `CompressFileListResponse` |
+| `SearchFiles(name string, page, pageSize int, parentId any)`                                                                | `POST /userres/v1/file/search_files`              | `SearchFilesRequest`      | `FileListResponse`         |
+| `GetCompressFileList(fileID string, page, pageSize int, password string)`                                                   | `POST /userres/v1/get_compress_file_list`         | `CompressFileListRequest` | `CompressFileListResponse` |
 | `DecompressFiles(fileID, password string, filePaths []string, toFileID string)`                                            | `POST /userres/v1/decompress_files`              | `DecompressFilesRequest`  | `FileTaskResponse`         |
 | `QueryDecompressStatus(taskID string)`                                                                                      | `POST /userres/v1/query_decompress_status`       | `QueryDecompressStatusRequest` | `TaskStatusResponse`       |
 | `FSCreateDir(dirName string, parentId any, failIfNameExist bool)`                                                           | `POST /nd.bizuserres.s/v1/file/create_dir`        | `FSCreateDirRequest`      | `FSCreateDirResponse`      |
@@ -466,6 +467,9 @@ fmt.Println(result)
 
 ## 请求参数详解
 
+所有带 `pageSize` 的请求均包含 `page int`：`0` 为第一页，`1` 为第二页，以此类推。`page` 按原值发送，`0` 不省略，也不会自动加一。
+`GetUserAction`、`GetRestoreList`、`SearchFiles` 和 `GetCompressFileList` 的调用需在原 `pageSize` 参数前补充 `page`；`ShareAuditRejectList` 通过请求结构体的 `Page` 字段设置，零值即第一页。已有 `cursor` 字段继续保留，不由 `page` 自动推算。
+
 ### 认证请求
 
 | 请求类型                     | JSON 字段与 Go 类型                                                                                  | 默认值及说明                                                                                                        |
@@ -484,8 +488,8 @@ fmt.Println(result)
 | `EmptyRequest`             | 无字段，序列化为 `{}`                                                   | 用于资产查询、清空回收站及删除失效分享                                                                         |
 | `TrafficStatisticsRequest` | `bizType int`、`groupBy int`、`startDate string`、`endDate string` | 业务类型、分组方式、开始/结束日期；日期格式 `YYYY-MM-DD`。代码注释记录 `bizType=8` 为直链流量包，`5` 为免登录流量包；未校验枚举及日期范围 |
 | `InAppMsgListRequest`      | `msgType int`、`page int`、`pageSize int`                         | 消息类型、页码、每页数量；三个字段均发送                                                                 |
-| `UserActionRequest`        | `pageSize int`、`cursor string`、`fileTypes []int`                | 每页数量、字符串游标、文件类型过滤；首次可传 `cursor=""`；`fileTypes=nil` 发送 `null`，空切片发送 `[]`              |
-| `RestoreListRequest`       | `pageSize int`、`cursor int`、`orderBy int`、`sortType int`        | 转存列表的数量、整数游标、排序字段和排序类型；首次示例使用 `cursor=0`                                             |
+| `UserActionRequest`        | `page int`、`pageSize int`、`cursor string`、`fileTypes []int`     | 页码、每页数量、字符串游标、文件类型过滤；首次可传 `page=0`、`cursor=""`；`fileTypes=nil` 发送 `null`，空切片发送 `[]` |
+| `RestoreListRequest`       | `page int`、`pageSize int`、`cursor int`、`orderBy int`、`sortType int` | 转存列表的页码、数量、整数游标、排序字段和排序类型；首次示例使用 `page=0`、`cursor=0` |
 
 ### 文件请求
 
@@ -494,7 +498,7 @@ fmt.Println(result)
 | JSON 字段          | Go 类型   | 说明                                       |
 | ---------------- | ------- | ---------------------------------------- |
 | `parentId`       | `any`   | 父目录 ID；`FSFiles` 方法将 `nil` 转为 `""`       |
-| `page`           | `int`   | 页码，原样发送                                  |
+| `page`           | `int`   | 页码，0 为第一页，原样发送                       |
 | `pageSize`       | `int`   | 每页数量                                     |
 | `orderBy`        | `int`   | 排序字段，枚举由接口约定                             |
 | `sortType`       | `int`   | 排序类型，枚举由接口约定                             |
@@ -507,8 +511,8 @@ fmt.Println(result)
 
 | 请求类型                      | JSON 字段与 Go 类型                                         | 参数说明                                                                    |
 | ------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------- |
-| `SearchFilesRequest`      | `name string`、`pageSize int`                           | 搜索名称、数量；当前接口封装没有页码或游标参数                                                 |
-| `CompressFileListRequest` | `fileId string`、`pageSize int`、`password string`       | 压缩文件 ID、每页数量和压缩文件密码；密码为空字符串时仍会发送 `password: ""`                         |
+| `SearchFilesRequest`      | `name string`、`page int`、`pageSize int`、`parentId any` | 搜索名称、页码、数量和搜索目录 ID；方法将 `nil` 转为 `""`，字段不省略 |
+| `CompressFileListRequest` | `fileId string`、`page int`、`pageSize int`、`password string` | 压缩文件 ID、页码、每页数量和压缩文件密码；密码为空字符串时仍会发送 `password: ""` |
 | `DecompressFilesRequest`  | `fileId string`、`password string`、`filePaths []string`、`toFileId string` | 压缩文件 ID、密码、待解压的文件路径列表和目标目录 ID；密码为空字符串时仍会发送 |
 | `QueryDecompressStatusRequest` | `taskId string` | 解压缩任务 ID |
 | `FSCreateDirRequest`      | `dirName string`、`parentId any`、`failIfNameExist bool` | 新目录名、父目录、同名时是否失败；父目录 `nil` 转 `""`，`failIfNameExist=false` 时省略           |
@@ -542,7 +546,7 @@ fmt.Println(result)
 | `ShareCreateRequest`      | `fileIds []any`、`title string`、`validateDuration int`、`shareType int`、`autoFillCode bool`、`trafficLimit string`、`maxRestoreCount int`、`downloadType int`、`enableShareCode bool`、`shareCode string` | `ShareCreate` 接收完整请求结构，所有字段按原值发送，包括 `false`、`0` 和空字符串；不填充默认值 |
 | `ShareUpdateRequest`      | `id string`、`title string`、`validateDuration int`、`shareType int`、`code string`、`autoFillCode bool`、`trafficLimit string`、`maxRestoreCount int`、`downloadType int`     | 分享 ID、标题、有效时长、分享类型、提取码、是否自动填码、流量限制、最大转存次数、下载类型；全部由方法参数提供，零值也发送 |
 | `ShareListRequest`        | `page int`、`pageSize int`、`orderType int`、`sortType int`                                                                                                               | 页码、每页数量、排序字段及类型；方法参数 `orderBy` 写入的是 `orderType`，不是 `orderBy`   |
-| `ShareAuditRejectListRequest` | `shareId string`、`pageSize int`、`cursor string` | 全部按原值发送，包括零值和空字符串；首次请求 `cursor: ""`，后续分页传入响应中的字符串游标 |
+| `ShareAuditRejectListRequest` | `shareId string`、`page int`、`pageSize int`、`cursor string` | 全部按原值发送，包括零值和空字符串；首次请求 `page: 0`、`cursor: ""`，后续分页保留响应中的字符串游标 |
 | `ShareDeleteRequest`      | `ids []any`                                                                                                                                                            | 要删除的分享 ID 列表                                                   |
 | `ShareRestoreRequest`     | `accessToken string`、`fileIds []any`、`parentId string`                                                                                                                 | 分享访问令牌、转存文件 ID 列表、目标父目录；空父目录仍发送                                |
 | `ShareIDRequest`          | `shareId string`                                                                                                                                                       | 分享摘要查询                                                         |
@@ -834,13 +838,13 @@ result, err := client.GetTrafficStatistics(8, 0, "2026-08-16", "2026-09-14")
 ### 站内消息
 
 ```go
-result, err := client.GetInAppMsgList(1, 1, 10)
+result, err := client.GetInAppMsgList(1, 0, 10)
 ```
 
 请求（当前 SDK 会额外发送 `page`）：
 
 ```json
-{"msgType":1,"page":1,"pageSize":10}
+{"msgType":1,"page":0,"pageSize":10}
 ```
 
 响应：
@@ -918,13 +922,13 @@ result, err := client.QueryDecompressStatus("ZB61039107")
 ### 用户操作记录
 
 ```go
-result, err := client.GetUserAction(2, "", []int{2})
+result, err := client.GetUserAction(0, 2, "", []int{2})
 ```
 
 请求：
 
 ```json
-{"pageSize":2,"cursor":"","fileTypes":[2]}
+{"page":0,"pageSize":2,"cursor":"","fileTypes":[2]}
 ```
 
 响应：
@@ -959,13 +963,13 @@ result, err := client.GetUserAction(2, "", []int{2})
 ### 转存列表
 
 ```go
-result, err := client.GetRestoreList(4, 0, 2, 1)
+result, err := client.GetRestoreList(0, 4, 0, 2, 1)
 ```
 
 请求：
 
 ```json
-{"pageSize":4,"cursor":0,"orderBy":2,"sortType":1}
+{"page":0,"pageSize":4,"cursor":0,"orderBy":2,"sortType":1}
 ```
 
 响应：
@@ -991,14 +995,17 @@ result, err := client.GetRestoreList(4, 0, 2, 1)
 
 ### 搜索文件
 
+参数顺序为 `name, page, pageSize, parentId`，例如 `client.SearchFiles("死侍", 0, 20, "1894360528676503650")` 搜索指定文件夹的第一页。
+`parentId` 传入 `nil` 时发送 `parentId: ""`。
+
 ```go
-result, err := client.SearchFiles("死侍", 20)
+result, err := client.SearchFiles("死侍", 0, 20, nil)
 ```
 
 请求：
 
 ```json
-{"name":"死侍","pageSize":20}
+{"name":"死侍","page":0,"pageSize":20,"parentId":""}
 ```
 
 响应（文件与目录共用 `FileItem`）：
@@ -1032,13 +1039,13 @@ result, err := client.SearchFiles("死侍", 20)
 ### 压缩文件列表
 
 ```go
-result, err := client.GetCompressFileList("1946490208080760901", 100, "")
+result, err := client.GetCompressFileList("1946490208080760901", 0, 100, "")
 ```
 
 请求：
 
 ```json
-{"fileId":"1946490208080760901","pageSize":100,"password":""}
+{"fileId":"1946490208080760901","page":0,"pageSize":100,"password":""}
 ```
 
 响应：

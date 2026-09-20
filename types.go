@@ -259,12 +259,14 @@ type InAppMsgListRequest struct {
 }
 
 type UserActionRequest struct {
+	Page      int    `json:"page"`
 	PageSize  int    `json:"pageSize"`
 	Cursor    string `json:"cursor"`
 	FileTypes []int  `json:"fileTypes"`
 }
 
 type RestoreListRequest struct {
+	Page     int `json:"page"`
 	PageSize int `json:"pageSize"`
 	Cursor   int `json:"cursor"`
 	OrderBy  int `json:"orderBy"`
@@ -312,6 +314,7 @@ type ShareDeleteRequest struct {
 
 type ShareAuditRejectListRequest struct {
 	ShareID  string `json:"shareId"`
+	Page     int    `json:"page"`
 	PageSize int    `json:"pageSize"`
 	Cursor   string `json:"cursor"`
 }
@@ -357,11 +360,14 @@ type ShareFilesListRequest struct {
 
 type SearchFilesRequest struct {
 	Name     string `json:"name"`
+	Page     int    `json:"page"`
 	PageSize int    `json:"pageSize"`
+	ParentID any    `json:"parentId"`
 }
 
 type CompressFileListRequest struct {
 	FileID   string `json:"fileId"`
+	Page     int    `json:"page"`
 	PageSize int    `json:"pageSize"`
 	Password string `json:"password"`
 }
